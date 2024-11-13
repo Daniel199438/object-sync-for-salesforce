@@ -196,7 +196,6 @@ class Object_Sync_Sf_Salesforce_Pull {
 
 		// use the option value for whether we're in debug mode.
 		$this->debug = filter_var( get_option( $this->option_prefix . 'debug_mode', false ), FILTER_VALIDATE_BOOLEAN );
-
 	}
 
 	/**
@@ -295,7 +294,6 @@ class Object_Sync_Sf_Salesforce_Pull {
 		);
 
 		return $result;
-
 	}
 
 	/**
@@ -350,7 +348,8 @@ class Object_Sync_Sf_Salesforce_Pull {
 			$map_sync_triggers = (array) $salesforce_mapping['sync_triggers']; // this sets which Salesforce triggers are allowed for the mapping.
 			$type              = $salesforce_mapping['salesforce_object']; // this sets the Salesforce object type for the SOQL query.
 
-			$soql = $this->get_pull_query( $type, $salesforce_mapping );
+			// Setting true as third parameter so we do not change the offset.
+			$soql = $this->get_pull_query( $type, $salesforce_mapping, true );
 
 			// get_pull_query returns null if it has no matching fields.
 			if ( null === $soql ) {
@@ -535,9 +534,8 @@ class Object_Sync_Sf_Salesforce_Pull {
 					} // end if
 				} // end foreach
 
-				// we're done with the foreach. store the LastModifiedDate of the last item processed, or the current time if it isn't there.
+				// we're done with the foreach. save  the LastModifiedDate of the last item processed, we will store it if the query has results with an additional offset.
 				$last_date_for_query = isset( $result['LastModifiedDate'] ) ? $result['LastModifiedDate'] : '';
-				$this->increment_current_type_datetime( $type, $last_date_for_query, $salesforce_mapping['id'] );
 
 				if ( true === $this->batch_soql_queries ) {
 					// if applicable, process the next batch of records.
@@ -551,6 +549,8 @@ class Object_Sync_Sf_Salesforce_Pull {
 					end( $response['records'] );
 					$last_record_key = key( $response['records'] );
 					if ( true === $does_next_offset_have_results ) {
+						// store the LastModifiedDate of the last item processed, or the current time if it isn't there.
+						$this->increment_current_type_datetime( $type, $last_date_for_query, $salesforce_mapping['id'] );
 						// increment SOQL query to run.
 						$soql = $this->get_pull_query( $type, $salesforce_mapping );
 					} elseif ( $last_record_key === $key ) {
@@ -723,11 +723,12 @@ class Object_Sync_Sf_Salesforce_Pull {
 	 *
 	 * @param string $type e.g. "Contact", "Account", etc.
 	 * @param array  $salesforce_mapping the fieldmap that maps the two object types.
+	 * @param bool   $force_current_offset if true, the will offset not be recalculated and will use the offset of the current query saved on the db, if present.
 	 * @return Object_Sync_Sf_Salesforce_Select_Query or null if no mappings or no mapped fields were found.
 	 * @see Object_Sync_Sf_Mapping::get_mapped_fields
 	 * @see Object_Sync_Sf_Mapping::get_mapped_record_types
 	 */
-	private function get_pull_query( $type, $salesforce_mapping = array() ) {
+	private function get_pull_query( $type, $salesforce_mapping = array(), $force_current_offset = false ) {
 		// we need to determine what to do with saved queries. this is what we currently do but it doesn't work.
 		// check if we have a stored next query to run for this type. if so, unserialize it so we have an object.
 		$pull_query_running = $this->pull_options->get( 'current_query', $type, $salesforce_mapping['id'], '' );
@@ -817,8 +818,11 @@ class Object_Sync_Sf_Salesforce_Pull {
 			$soql->conditions[ $key ]['value'] = $pull_trigger_field_value;
 		}
 
-		// Get the value for the SOQL offset. If max has already been reached, it is zero.
-		$soql->offset = $this->get_pull_offset( $type, $soql, $reset_offset );
+		// We don't want to change the offset on the first call of get_updated_records function. Otherwise the offset may be added two times and we would lose records...
+		if ( false === $force_current_offset ) {
+			// Get the value for the SOQL offset. If max has already been reached, it is zero.
+			$soql->offset = $this->get_pull_offset( $type, $soql, $reset_offset );
+		}
 
 		// add a filter here to modify the query
 		// Hook to allow other plugins to modify the SOQL query before it is sent to Salesforce.
@@ -907,7 +911,6 @@ class Object_Sync_Sf_Salesforce_Pull {
 		*/
 
 		return $pull_trigger_field_value;
-
 	}
 
 	/**
@@ -992,7 +995,6 @@ class Object_Sync_Sf_Salesforce_Pull {
 				}
 			} // End foreach on mappings
 		} // end foreach on types
-
 	}
 
 	/**
@@ -1092,7 +1094,7 @@ class Object_Sync_Sf_Salesforce_Pull {
 					foreach ( $merged as $key ) {
 						$deleted['data']['deletedRecords'] = array_filter(
 							$deleted['data']['deletedRecords'],
-							function( $x ) use ( $key ) {
+							function ( $x ) use ( $key ) {
 								if ( ! isset( $x['Id'] ) && isset( $x['id'] ) ) {
 									$x['Id'] = $x['id'];
 								}
@@ -1213,7 +1215,6 @@ class Object_Sync_Sf_Salesforce_Pull {
 		);
 
 		return $result;
-
 	}
 
 	/**
@@ -1544,7 +1545,6 @@ class Object_Sync_Sf_Salesforce_Pull {
 		}
 
 		return $results;
-
 	}
 
 	/**
@@ -1834,7 +1834,7 @@ class Object_Sync_Sf_Salesforce_Pull {
 				esc_attr( $op ),
 				esc_attr( $salesforce_mapping['wordpress_object'] )
 			);
-			if ( null !== $salesforce_id ) {
+			if ( isset( $salesforce_id ) && null !== $salesforce_id ) {
 				$title .= ' ' . $salesforce_id;
 			}
 			$title .= sprintf(
@@ -2020,7 +2020,6 @@ class Object_Sync_Sf_Salesforce_Pull {
 		$mapping_object                     = $this->mappings->update_object_map( $mapping_object, $mapping_object['id'] );
 
 		return $results;
-
 	}
 
 	/**
@@ -2164,7 +2163,6 @@ class Object_Sync_Sf_Salesforce_Pull {
 		} // End if() statement.
 
 		return $results;
-
 	}
 
 	/**
@@ -2247,7 +2245,6 @@ class Object_Sync_Sf_Salesforce_Pull {
 		);
 
 		return $mapping_object;
-
 	}
 
 	/**
@@ -2291,5 +2288,4 @@ class Object_Sync_Sf_Salesforce_Pull {
 
 		return $pull_allowed;
 	}
-
 }
