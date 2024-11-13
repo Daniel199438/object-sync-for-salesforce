@@ -98,6 +98,53 @@ $(document).ready(function () {
   // get the available Salesforce object choices
   salesforceObjectFields();
 });
+
+$(document).ready(function () {
+  const paginationLinks = document.querySelectorAll('.pagination a');
+  const rows = document.querySelectorAll('tr.already-saved-fields');
+  const entriesPerPage = 15;
+
+  $('#field-search').on('keyup', function () {
+    var searchTerm = $(this).val().toLowerCase();
+    $('table.fields tbody tr').each(function () {
+        var rowText = $(this).text().toLowerCase();
+        if (rowText.includes(searchTerm)) {
+            console.log('show');
+            $(this).show();
+        } else {
+            console.log('hide');
+            $(this).hide();
+        }
+    });
+});
+
+  paginationLinks.forEach(link => {
+      link.addEventListener('click', function(event) {
+          event.preventDefault();
+          const page = parseInt(this.getAttribute('href').split('paged=')[1]);
+          console.log(page);
+          showPage(page);
+      });
+  });
+
+  function showPage(page) {
+      const start = (page - 1) * entriesPerPage;
+      const end = start + entriesPerPage;
+
+      rows.forEach((row, index) => {
+          if (index >= start && index < end) {
+              row.classList.add('visible');
+              row.classList.remove('hidden');
+          } else {
+              row.classList.add('hidden');
+              row.classList.remove('visible');
+          }
+      });
+  }
+
+  // Initiale Anzeige der ersten Seite
+  showPage(1);
+});
 "use strict";
 
 /**

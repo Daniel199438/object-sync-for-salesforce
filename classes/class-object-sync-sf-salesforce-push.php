@@ -208,6 +208,7 @@ class Object_Sync_Sf_Salesforce_Push {
 	 * @param string $http_method the HTTP method that was called.
 	 */
 	public function manual_push( $object_type, $wordpress_id, $http_method ) {
+		$code = '';
 		$object = $this->wordpress->get_wordpress_object_data( $object_type, $wordpress_id );
 		// run the WordPress trigger that corresponds to the HTTP method.
 		switch ( $http_method ) {

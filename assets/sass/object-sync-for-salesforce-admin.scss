@@ -23,6 +23,16 @@ $active-color: #72aee6;
 		}
 	}
 
+	#field-search {
+        margin-bottom: 15px;
+        padding: 8px;
+        width: 100%;
+        box-sizing: border-box;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+
+
 	// salesforce version list
 	.sfwp-salesforce-version-list {
 
@@ -294,4 +304,29 @@ $active-color: #72aee6;
 		font-size: 13px;
 		width: 140px;
 	}
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.pagination a {
+    margin: 0 5px;
+    padding: 8px 16px;
+    text-decoration: none;
+    color: #0073aa;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.pagination a.active {
+    background-color: #0073aa;
+    color: white;
+    border: 1px solid #0073aa;
+}
+
+.pagination a:hover {
+    background-color: #ddd;
 }

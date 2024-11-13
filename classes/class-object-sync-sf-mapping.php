@@ -555,6 +555,7 @@ class Object_Sync_Sf_Mapping {
 	 */
 	public function update_fieldmap( $posted = array(), $wordpress_fields = array(), $salesforce_fields = array(), $id = '' ) {
 		$data = $this->setup_fieldmap_data( $posted, $wordpress_fields, $salesforce_fields );
+
 		if ( version_compare( $this->version, '1.2.5', '>=' ) && ! isset( $data['updated'] ) ) {
 			$data['version'] = $this->version;
 		}
@@ -1030,7 +1031,7 @@ class Object_Sync_Sf_Mapping {
 					if ( $this->wpdb->prefix . 'capabilities' === $wordpress_field ) {
 						$object[ $wordpress_field ] = implode( $this->array_delimiter, array_keys( $object[ $wordpress_field ] ) );
 					} else {
-						$object[ $wordpress_field ] = implode( $this->array_delimiter, $object[ $wordpress_field ] );
+						$object[ $wordpress_field ] = implode( $this->array_delimiter, maybe_unserialize($object[ $wordpress_field ]) );
 					}
 				}
 
@@ -1242,8 +1243,11 @@ class Object_Sync_Sf_Mapping {
 			$mappings[ $id ]['fields']                          = isset( $mapping['fields'] ) ? maybe_unserialize( $mapping['fields'] ) : array();
 			$mappings[ $id ]['sync_triggers']                   = isset( $mapping['sync_triggers'] ) ? maybe_unserialize( $mapping['sync_triggers'] ) : array();
 			// format the sync triggers.
-			$sync_triggers                    = $this->maybe_upgrade_sync_triggers( $mappings[ $id ]['sync_triggers'], $mapping['version'], $mapping['id'] );
-			$mappings[ $id ]['sync_triggers'] = $sync_triggers;
+			 // Check if 'sync_triggers' exists before using it
+			 if (isset($mappings[ $id ]['sync_triggers']) && isset($mapping['version']) && isset($mapping['id'])) {
+                $sync_triggers = $this->maybe_upgrade_sync_triggers( $mappings[ $id ]['sync_triggers'], $mapping['version'], $mapping['id'] );
+                $mappings[ $id ]['sync_triggers'] = $sync_triggers;
+            }
 			if ( '' !== $record_type && ! in_array( $record_type, $mappings[ $id ]['salesforce_record_types_allowed'], true ) ) {
 				unset( $mappings[ $id ] );
 			}

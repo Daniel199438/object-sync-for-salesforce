@@ -653,6 +653,7 @@ class Object_Sync_Sf_Admin {
 								$pull_to_drafts                      = $map['pull_to_drafts'];
 								$weight                              = $map['weight'];
 							}
+							
 							if ( 'add' === $method || 'edit' === $method || 'clone' === $method ) {
 								require_once plugin_dir_path( $this->file ) . '/templates/admin/fieldmaps-add-edit-clone.php';
 							} elseif ( 'delete' === $method ) {
@@ -1857,6 +1858,61 @@ class Object_Sync_Sf_Admin {
 	}
 
 	/**
+     * Create or update field mappings in the database.
+     * This method uses existing functions to create or update field mappings.
+     *
+     * @param array $data The data array containing necessary information.
+     * @return void
+     */
+	public function create_or_update_field_mappings($data, $overwrite = false) {
+		if (!isset($data['salesforce_object'], $data['wordpress_object'], $data['fields'])) {
+			return;
+		}
+
+		$salesforce_fields = $this->get_salesforce_object_fields(['salesforce_object' => $data['salesforce_object']]);
+		$wordpress_fields = $this->get_wordpress_object_fields($data['wordpress_object']);
+
+		$fieldmap_data = [
+			'label'             => $data['label'],
+			'name'              => sanitize_title($data['label']),
+			'salesforce_object' => $data['salesforce_object'],
+			'wordpress_object'  => $data['wordpress_object'],
+			'version'           => $this->version,
+		];
+
+		$existing_fieldmap = $this->mappings->get_fieldmaps(null, array("name" => $fieldmap_data['name']), false);
+
+		/*
+		echo "<pre>";
+		print_r($wordpress_fields);
+		print_r($salesforce_fields);
+		echo "</pre>";
+		*/
+
+		$fieldmap_data['fields'] = array_filter(array_map(function($field) use ($wordpress_fields, $salesforce_fields) {
+			$wordpress_field = $this->search_wordpress_field_by_key($wordpress_fields, $field['wordpress_field']);
+			$salesforce_field = $this->search_salesforce_field_by_name($salesforce_fields, $field['salesforce_field']);
+
+			return $wordpress_field && $salesforce_field ? [
+				'wordpress_field'  => $wordpress_field,
+				'salesforce_field' => $salesforce_field,
+				'direction'        => $field['direction'],
+				'is_prematch'      => $field['is_prematch'],
+				'is_key'           => $field['is_key'],
+				'is_delete'        => $field['is_delete'],
+			] : [];
+		}, $data['fields']));
+
+		
+
+		if (!$existing_fieldmap) {
+			$this->mappings->create_fieldmap($fieldmap_data, $wordpress_fields, $salesforce_fields);
+		} else if ($overwrite) {
+			$this->mappings->update_fieldmap($fieldmap_data, $wordpress_fields, $salesforce_fields, $existing_fieldmap[0]['id']);
+		}
+	}
+
+	/**
 	 * Delete fieldmap data and redirect after processing
 	 * This runs when the delete link is clicked, after the user confirms
 	 * It is public because it depends on an admin hook
@@ -2782,6 +2838,57 @@ class Object_Sync_Sf_Admin {
 
 		return $mapping_object;
 
+	}
+
+
+	/**
+	 * Searches the wordpress_fields array for a specific key.
+	 *
+	 * @param array  $wordpress_fields The array of WordPress fields.
+	 * @param string $key The key to search for.
+	 * @return mixed The value of the found key or false if the key was not found.
+	 */
+	private function search_wordpress_field_by_key( $wordpress_fields, $key ) {
+		foreach ( $wordpress_fields as $field ) {
+			if ( isset( $field['key'] ) && $field['key'] === $key ) {
+				if (!isset($field['label'])) {
+					$field['label'] = $field['key'];
+				}
+				return $field;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Searches the Salesforce fields array for a field with a specific name.
+	 *
+	 * @param array  $salesforce_fields The array of Salesforce fields.
+	 * @param string $name The name of the field to search for.
+	 * @return mixed The field array if the field name is found, false otherwise.
+	 */
+	private function search_salesforce_field_by_name( $salesforce_fields, $name ) {
+		foreach ( $salesforce_fields as $field ) {
+			if ( isset( $field['name'] ) && $field['name'] === $name ) {
+				return $field;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Checks if a Fieldmap with the given name exists.
+	 *
+	 * @param string $name The name of the Fieldmap to check.
+	 * @return bool True if the Fieldmap exists, otherwise false.
+	 */
+	private function get_fieldmap_by_name( $fieldmaps,  $name ) {
+		foreach ( $fieldmaps as $fieldmap ) {
+			if ( isset( $fieldmap['name'] ) && $fieldmap['name'] === $name ) {
+				return $fieldmap;
+			}
+		}
+		return false;
 	}
 
 }

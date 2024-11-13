@@ -149,6 +149,14 @@ class Object_Sync_Sf_WordPress {
 		// this should include the available object types and send them to the hook.
 		$wordpress_types_not_posts_include = array( 'user', 'comment', 'category', 'tag' );
 		$wordpress_objects                 = array_merge( get_post_types(), $wordpress_types_not_posts_include );
+
+
+		/*
+		echo '<pre>';
+		print_r( get_post_types() );
+		echo '</pre>';
+		*/
+
 		// this should be all the objects.
 		$wordpress_objects = apply_filters( $this->option_prefix . 'add_more_wordpress_types', $wordpress_objects );
 
@@ -2567,7 +2575,7 @@ class Object_Sync_Sf_WordPress {
 	 *
 	 * @return array $meta_result contains the success flag, the changed flag, and the array of errors
 	 */
-	private function update_wp_meta( $params, $parent_object_id, $parent_object_type ) {
+	private function update_wp_meta( $params, $parent_object_id, $parent_object_type, $delete_empty_meta = false ) {
 		$success = true;
 		$changed = false;
 		$errors  = array();
@@ -2575,12 +2583,12 @@ class Object_Sync_Sf_WordPress {
 			$changed = true;
 			foreach ( $params as $key => $value ) {
 				$modify = $value['method_modify'];
-
-				// if the value is empty, use the delete method to modify it.
-				if ( '' === $value['value'] ) {
+	
+				// if the value is empty, use the delete method to modify it only if $delete_empty_meta is true
+				if ( '' === $value['value'] && $delete_empty_meta ) {
 					$modify = isset( $value['method_delete'] ) ? $value['method_delete'] : $value['method_modify'];
 				}
-
+	
 				$read = $value['method_read'];
 				// todo: we could provide a way for passing the values in a custom order here.
 				$meta_id = $modify( $parent_object_id, $key, $value['value'] );
@@ -2588,19 +2596,19 @@ class Object_Sync_Sf_WordPress {
 					$changed = false;
 					// Check and make sure the stored value matches $value['value'], otherwise it's an error.
 					// In some cases, such as picklists, WordPress is dealing with an array that came from Salesforce at this point, so we need to serialize the value before assuming it's an error.
-
+	
 					if ( is_array( $value['value'] ) ) {
 						$new_value = maybe_serialize( $value['value'] );
 					} else {
 						$new_value = (string) $value['value'];
 					}
-
+	
 					if ( is_array( $read( $parent_object_id, $key, true ) ) ) {
 						$stored_value = maybe_serialize( $read( $parent_object_id, $key, true ) );
 					} else {
 						$stored_value = (string) $read( $parent_object_id, $key, true );
 					}
-
+	
 					if ( $stored_value !== $new_value ) {
 						$errors[] = array(
 							'message' => sprintf(

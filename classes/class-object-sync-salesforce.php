@@ -142,6 +142,13 @@ class Object_Sync_Salesforce {
 	public $pull;
 
 	/**
+	 * Object_Sync_Sf_Admin class
+	 *
+	 * @var object
+	 */
+	public $admin;
+
+	/**
 	 * Object_Sync_Sf_Rest class
 	 *
 	 * @var object
@@ -288,7 +295,7 @@ class Object_Sync_Salesforce {
 		$this->rest = new Object_Sync_Sf_Rest();
 
 		// admin functionality.
-		new Object_Sync_Sf_Admin();
+		$this->admin = new Object_Sync_Sf_Admin();
 	}
 
 	/**
