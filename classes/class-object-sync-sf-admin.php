@@ -1878,6 +1878,8 @@ class Object_Sync_Sf_Admin {
 			'salesforce_object' => $data['salesforce_object'],
 			'wordpress_object'  => $data['wordpress_object'],
 			'version'           => $this->version,
+			'sync_triggers'    	=> $data['sync_triggers'],
+			'push_async' 	  	=> $data['push_async'],
 		];
 
 		$existing_fieldmap = $this->mappings->get_fieldmaps(null, array("name" => $fieldmap_data['name']), false);
