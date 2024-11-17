@@ -361,6 +361,10 @@ class Object_Sync_Sf_Salesforce {
 		if ( isset( $options['authenticated'] ) && true === $options['authenticated'] ) {
 			$headers = false;
 		}
+
+		$params = array_filter($params, function ($value) {
+			return $value != '';
+		});
 		// if this request should be cached, see if it already exists
 		// if it is already cached, load it. if not, load it and then cache it if it should be cached
 		// add parameters to the array so we can tell if it was cached or not.
