@@ -1527,8 +1527,8 @@ class Object_Sync_Sf_Salesforce_Push {
 					'last_sync_status'  => $this->mappings->status_success,
 					'last_sync_message' => sprintf(
 						// translators: placeholder is for the action that occurred on the mapping object (pending or created).
-						esc_html__( 'Mapping object %1$s via function: ', 'object-sync-for-salesforce' ) . __FUNCTION__,
-						esc_attr( $action )
+						esc_html__('Mapping object %s via function: ', 'object-sync-for-salesforce') . __FUNCTION__,
+						esc_attr($action)
 					),
 					'action'            => $action,
 				)
